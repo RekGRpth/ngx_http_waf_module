@@ -42,9 +42,9 @@ ngx_feature_libs="-lm"
 
 _HTTP_WAF_SRCS="\
     $ngx_addon_dir/ngx_http_waf_module.c \
-    $ngx_addon_dir/libinjection/libinjection_sqli.c \
-    $ngx_addon_dir/libinjection/libinjection_xss.c \
-    $ngx_addon_dir/libinjection/libinjection_html5.c \
+    $ngx_addon_dir/libinjection/src/libinjection_sqli.c \
+    $ngx_addon_dir/libinjection/src/libinjection_xss.c \
+    $ngx_addon_dir/libinjection/src/libinjection_html5.c \
 "
 
 if test -n "$ngx_module_link"; then

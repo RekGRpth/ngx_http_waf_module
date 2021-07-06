@@ -5,8 +5,8 @@
 #include <ngx_http.h>
 #include <ngx_md5.h>
 
-#include "libinjection/libinjection.h"
-#include "libinjection/libinjection_sqli.h"
+#include "libinjection/src/libinjection.h"
+#include "libinjection/src/libinjection_sqli.h"
 
 #ifdef NGX_WAF_MAGIC
 #include <magic.h>
