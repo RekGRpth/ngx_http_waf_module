@@ -4231,7 +4231,7 @@ done:
 }
 
 
-void ngx_http_waf_body_handler(ngx_http_request_t *r)
+static void ngx_http_waf_body_handler(ngx_http_request_t *r)
 {
     ngx_http_waf_ctx_t  *ctx;
 
