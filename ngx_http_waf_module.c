@@ -1062,7 +1062,7 @@ ngx_http_waf_score_tag(u_char *b, u_char *e, char *s) {
 
 
 static ngx_int_t
-ngx_array_binary_search(ngx_array_t *a, void *v,
+ngx_array_binary_search(const ngx_array_t *a, void *v,
     ngx_int_t (*cmp)(const void *, const void *))
 {
     ngx_int_t       l, r, m, rc;
@@ -1124,7 +1124,7 @@ ngx_http_waf_hs_handler(unsigned int id,
 
 // search whitelist in array.
 static ngx_http_waf_whitelist_t *
-ngx_http_waf_search_whitelist(ngx_array_t *wl, ngx_int_t id)
+ngx_http_waf_search_whitelist(const ngx_array_t *wl, ngx_int_t id)
 {
     ngx_int_t                  i;
     ngx_http_waf_whitelist_t  *a;
@@ -1390,8 +1390,8 @@ ngx_http_waf_print_rule_array(ngx_array_t *a, char *s)
 
 // -- parse -----
 static ngx_int_t
-ngx_http_waf_merge_rule_array(ngx_conf_t *cf, ngx_array_t *wl,
-    ngx_array_t *checks, ngx_array_t *prev, ngx_array_t **conf)
+ngx_http_waf_merge_rule_array(ngx_conf_t *cf, const ngx_array_t *wl,
+    const ngx_array_t *checks, const ngx_array_t *prev, ngx_array_t **conf)
 {
     ngx_uint_t                     i, j, k, n;
     ngx_http_waf_rule_t           *prev_rules, *rule, *rules;
