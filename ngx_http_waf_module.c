@@ -299,6 +299,9 @@ typedef struct ngx_http_waf_whitelist_s {
 
 
 typedef struct {
+    ngx_uint_t       hash_max_size;
+    ngx_uint_t       hash_bucket_size;
+
     // ngx_http_waf_rule_t
     // general and regex
     ngx_array_t     *url;
@@ -436,6 +439,7 @@ struct ngx_http_waf_rule_parser_s {
 static ngx_int_t ngx_http_waf_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_waf_handler(ngx_http_request_t *r);
 static void *ngx_http_waf_create_main_conf(ngx_conf_t *cf);
+static char *ngx_http_waf_init_main_conf(ngx_conf_t *cf, void *conf);
 static void *ngx_http_waf_create_loc_conf(ngx_conf_t *cf);
 // static char *ngx_http_waf_init_main_conf(ngx_conf_t *cf, void *conf);
 static char *ngx_http_waf_merge_loc_conf(ngx_conf_t *cf,
@@ -715,6 +719,20 @@ static ngx_http_waf_rule_parser_t  ngx_http_waf_rule_parser_item[] = {
 
 static ngx_command_t  ngx_http_waf_commands[] = {
 
+    { ngx_string("security_hash_max_size"),
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      offsetof(ngx_http_waf_main_conf_t, hash_max_size),
+      NULL },
+
+    { ngx_string("security_hash_bucket_size"),
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      offsetof(ngx_http_waf_main_conf_t, hash_bucket_size),
+      NULL },
+
     { ngx_string("security_rule"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_1MORE,
       ngx_http_waf_main_rule,
@@ -766,7 +784,7 @@ static ngx_http_module_t  ngx_http_waf_module_ctx = {
     ngx_http_waf_init,                     /* postconfiguration */
 
     ngx_http_waf_create_main_conf,         /* create main configuration */
-    NULL,                                  /* init main configuration */
+    ngx_http_waf_init_main_conf,           /* init main configuration */
 
     NULL,                                  /* create server configuration */
     NULL,                                  /* merge server configuration */
@@ -803,7 +821,24 @@ ngx_http_waf_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
+    wmcf->hash_max_size = NGX_CONF_UNSET_UINT;
+    wmcf->hash_bucket_size = NGX_CONF_UNSET_UINT;
+
     return wmcf;
+}
+
+
+static char *
+ngx_http_waf_init_main_conf(ngx_conf_t *cf, void *conf)
+{
+    ngx_http_waf_main_conf_t *wmcf = conf;
+
+    ngx_conf_init_uint_value(wmcf->hash_max_size, 1024);
+    ngx_conf_init_uint_value(wmcf->hash_bucket_size, 512);
+
+    wmcf->hash_bucket_size = ngx_align(wmcf->hash_bucket_size, ngx_cacheline_size);
+
+    return NGX_CONF_OK;
 }
 
 
@@ -1141,6 +1176,7 @@ ngx_http_waf_vars_in_hash(ngx_conf_t *cf, ngx_array_t *a,
     ngx_hash_key_t         *hk;
     ngx_hash_init_t         hash;
     ngx_http_waf_rule_t    *rules;
+    ngx_http_waf_main_conf_t *wmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_waf_module);
 
     if (ngx_array_init(&vars, cf->temp_pool, 32, sizeof(ngx_hash_key_t))
         != NGX_OK)
@@ -1162,8 +1198,8 @@ ngx_http_waf_vars_in_hash(ngx_conf_t *cf, ngx_array_t *a,
 
     hash.hash = h;
     hash.key = ngx_hash_key_lc;
-    hash.max_size = 1024;
-    hash.bucket_size = ngx_align(512, ngx_cacheline_size);
+    hash.max_size = wmcf->hash_max_size;
+    hash.bucket_size = wmcf->hash_bucket_size;
     hash.name = "waf_vars_in_hash";
     hash.pool = cf->pool;
     hash.temp_pool = NULL;
