@@ -723,35 +723,35 @@ static ngx_command_t  ngx_http_waf_commands[] = {
       NULL },
 
     { ngx_string("security_loc_rule"),
-      NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_1MORE,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_1MORE,
       ngx_http_waf_loc_rule,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
 
     { ngx_string("security_check"),
-      NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_TAKE2,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_TAKE2,
       ngx_http_waf_check_rule,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       &ngx_http_waf_rule_actions },
 
     { ngx_string("security_waf"),
-      NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_FLAG,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_waf_loc_conf_t, security_waf),
       NULL },
 
     { ngx_string("security_log"),
-      NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_TAKE12,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_TAKE12,
       ngx_http_waf_set_log,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
 
     { ngx_string("security_timeout"),
-      NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_TAKE1,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_waf_loc_conf_t, security_timeout),
@@ -1546,6 +1546,7 @@ ngx_http_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_array_t                *pr_array;  /* parent rules */
 
     // NGX_CONF_UNSET
+    ngx_conf_merge_value(conf->security_waf, prev->security_waf, 0);
     if (1 != conf->security_waf) {
         conf->security_waf = 0;
         return NGX_CONF_OK;
@@ -1559,11 +1560,13 @@ ngx_http_waf_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         return NGX_CONF_ERROR;
     }
 
+    if (conf->whitelists == NULL) conf->whitelists = prev->whitelists;
     if (conf->whitelists != NULL) {
         ngx_qsort(conf->whitelists->elts, (size_t)conf->whitelists->nelts,
             sizeof(ngx_http_waf_whitelist_t), ngx_http_waf_cmp_whitelist_id);
     }
 
+    if (conf->check_rules == NULL) conf->check_rules = prev->check_rules;
 #if (NGX_DEBUG)
     ngx_http_waf_print_check_array(conf->check_rules, "conf->check_rules");
     ngx_http_waf_print_wl_array(conf->whitelists, "conf->whitelists");
