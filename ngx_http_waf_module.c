@@ -3440,9 +3440,6 @@ ngx_http_waf_rule_str_match(ngx_http_request_t *r, ngx_http_waf_ctx_t *ctx,
         && ngx_http_waf_mz_val(rule->m_zone->flag)
         && !ngx_http_waf_rule_wl_mz_val(rule->sts))
     {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            "ngx http waf rule str match val:%V", val);
-
         src.data = val->data;
         src.len  = val->len;
         dst = src;
@@ -3457,6 +3454,9 @@ ngx_http_waf_rule_str_match(ngx_http_request_t *r, ngx_http_waf_ctx_t *ctx,
                 return;
             }
         }
+
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+            "ngx http waf rule str match val:%V", &dst);
 
         if (rule->p_rule->handler(rule->p_rule, &dst) == NGX_OK) {
             ngx_http_waf_score_calc(r, ctx, rule, *val);
