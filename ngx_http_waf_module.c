@@ -8,10 +8,6 @@
 #include "libinjection/src/libinjection.h"
 #include "libinjection/src/libinjection_sqli.h"
 
-#ifdef NGX_DEBUG
-#include <assert.h>
-#endif
-
 /*
  * id 规则的标识，白名单和日志使用。
  * str 字符串匹配
