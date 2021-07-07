@@ -8,10 +8,6 @@
 #include "libinjection/src/libinjection.h"
 #include "libinjection/src/libinjection_sqli.h"
 
-#ifdef NGX_WAF_MAGIC
-#include <magic.h>
-#endif
-
 #ifdef NGX_DEBUG
 #include <assert.h>
 #endif
@@ -461,9 +457,6 @@ static ngx_int_t ngx_http_waf_parse_rule_whitelist(ngx_conf_t *cf,
 static ngx_int_t ngx_http_waf_parse_rule_libinj(ngx_conf_t *cf,
     ngx_str_t *str, ngx_http_waf_rule_parser_t *parser,
     ngx_http_waf_rule_opt_t *opt);
-static ngx_int_t  ngx_http_waf_parse_rule_libmagic(ngx_conf_t *cf,
-    ngx_str_t *str, ngx_http_waf_rule_parser_t *parser,
-    ngx_http_waf_rule_opt_t *opt);
 static ngx_int_t  ngx_http_waf_parse_rule_hash(ngx_conf_t *cf,
     ngx_str_t *str, ngx_http_waf_rule_parser_t *parser,
     ngx_http_waf_rule_opt_t *opt);
@@ -489,8 +482,6 @@ static ngx_int_t ngx_http_waf_rule_str_rx_handler(
 static ngx_int_t ngx_http_waf_rule_str_sqli_handler(
     ngx_http_waf_public_rule_t *pr, ngx_str_t *s);
 static ngx_int_t ngx_http_waf_rule_str_xss_handler(
-    ngx_http_waf_public_rule_t *pr, ngx_str_t *s);
-static ngx_int_t ngx_http_waf_rule_magic_mimetype_handler(
     ngx_http_waf_public_rule_t *pr, ngx_str_t *s);
 static ngx_int_t ngx_http_waf_rule_hash_md5_handler(
     ngx_http_waf_public_rule_t *pr, ngx_str_t *s);
@@ -687,7 +678,6 @@ static ngx_http_waf_rule_parser_t  ngx_http_waf_rule_parser_item[] = {
     {ngx_string("s:"),         ngx_http_waf_parse_rule_score},
     {ngx_string("str:"),       ngx_http_waf_parse_rule_str},
     {ngx_string("libinj:"),    ngx_http_waf_parse_rule_libinj},
-    {ngx_string("libmagic:"),  ngx_http_waf_parse_rule_libmagic},
     {ngx_string("hash:"),      ngx_http_waf_parse_rule_hash},
     {ngx_string("z:"),      ngx_http_waf_parse_rule_zone},
     {ngx_string("wl:"),     ngx_http_waf_parse_rule_whitelist},
@@ -2724,50 +2714,6 @@ ngx_http_waf_parse_rule_libinj(ngx_conf_t *cf, ngx_str_t *str,
 }
 
 
-// magic:mime_type@application/pdf
-static ngx_int_t
-ngx_http_waf_parse_rule_libmagic(ngx_conf_t *cf, ngx_str_t *str,
-    ngx_http_waf_rule_parser_t *parser, ngx_http_waf_rule_opt_t *opt)
-{
-    u_char              *p, *e;
-    static ngx_str_t     m_type = ngx_string("mime_type@");
-
-    p = str->data + parser->prefix.len;
-    e = str->data + str->len;
-
-    if (*p == '!') {
-        p++;
-        opt->p_rule->not = 1;
-    }
-
-    if (p + m_type.len > e || ngx_strncmp(p, m_type.data, m_type.len) != 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                "invalid magic type in arguments \"%V\"", str);
-        return NGX_ERROR;
-    }
-
-    p += m_type.len;
-
-    opt->p_rule->str.len  = e - p;
-    opt->p_rule->str.data = ngx_pcalloc(cf->pool,
-        opt->p_rule->str.len + 1);
-    if (opt->p_rule->str.data == NULL) {
-        return NGX_ERROR;
-    }
-
-    ngx_memcpy(opt->p_rule->str.data, p, opt->p_rule->str.len);
-    opt->p_rule->handler = ngx_http_waf_rule_magic_mimetype_handler;
-
-    #ifndef NGX_WAF_MAGIC
-    ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                "invalid libmagic in arguments \"%V\". "
-                "please install libmagic.", str);
-    #endif
-
-    return NGX_OK;
-}
-
-
 static ngx_int_t
 ngx_http_waf_parse_rule_hash(ngx_conf_t *cf, ngx_str_t *str,
     ngx_http_waf_rule_parser_t *parser, ngx_http_waf_rule_opt_t *opt)
@@ -3122,53 +3068,6 @@ ngx_http_waf_rule_str_xss_handler(ngx_http_waf_public_rule_t *pr,
     }
 
     return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_waf_rule_magic_mimetype_handler(ngx_http_waf_public_rule_t *pr,
-    ngx_str_t *s)
-{
-    if (s == NULL || s->data == NULL || s->len == 0) {
-        return NGX_ERROR;
-    }
-
-#ifdef NGX_WAF_MAGIC
-    magic_t          cookie;
-
-    const char      *p = NULL;
-    ngx_int_t        res = NGX_ERROR;
-
-    cookie = magic_open(MAGIC_MIME_TYPE);
-    if (cookie == NULL) {
-        res = NGX_ERROR;
-        goto done;
-    }
-    magic_load(cookie, NULL);
-
-    p = magic_buffer(cookie, (const void *)s->data, s->len);
-    if (p == NULL) {
-        res = NGX_ERROR;
-        goto done;
-    }
-
-    if (ngx_strncasecmp((u_char *)p, pr->str.data, pr->str.len) == 0) {
-        res = pr->not? NGX_ERROR: NGX_OK;
-        goto done;
-    }
-
-    res = pr->not? NGX_OK: NGX_ERROR;
-
-    done:
-    if (cookie != NULL) {
-        magic_close(cookie);
-    }
-
-    return res;
-
-#endif
-
-    return NGX_ERROR;
 }
 
 
