@@ -2939,9 +2939,6 @@ ngx_http_waf_rule_str_match(ngx_http_request_t *r, ngx_http_waf_ctx_t *ctx,
     ngx_str_t                     src, dst;
     ngx_http_waf_rule_decode_pt  *handlers;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-        "ngx http waf rule str match handler id:%ui", rule->p_rule->id);
-
     // match key
     if (key != NULL && key->len > 0
         && ngx_http_waf_mz_key(rule->m_zone->flag)
@@ -2962,10 +2959,10 @@ ngx_http_waf_rule_str_match(ngx_http_request_t *r, ngx_http_waf_ctx_t *ctx,
             }
         }
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            "ngx http waf rule str match key:%V", &dst);
-
         if (rule->p_rule->handler(rule->p_rule, &dst) == NGX_OK) {
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "ngx http waf rule str match handler id:%ui, key:%V", rule->p_rule->id, &dst);
+
             ngx_http_waf_score_calc(r, ctx, rule, *key);
         }
     }
@@ -2990,17 +2987,13 @@ ngx_http_waf_rule_str_match(ngx_http_request_t *r, ngx_http_waf_ctx_t *ctx,
             }
         }
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            "ngx http waf rule str match val:%V", &dst);
-
         if (rule->p_rule->handler(rule->p_rule, &dst) == NGX_OK) {
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "ngx http waf rule str match handler id:%ui, val:%V", rule->p_rule->id, &dst);
+
             ngx_http_waf_score_calc(r, ctx, rule, *val);
         }
     }
-
-
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-        "ngx http waf rule str match handler done");
 
     return;
 }
