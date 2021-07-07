@@ -3412,25 +3412,25 @@ ngx_http_waf_rule_str_match(ngx_http_request_t *r, ngx_http_waf_ctx_t *ctx,
         && ngx_http_waf_mz_key(rule->m_zone->flag)
         && !ngx_http_waf_rule_wl_mz_key(rule->sts))
     {
+        src.data = key->data;
+        src.len  = key->len;
+        dst = src;
+
+        handlers = rule->p_rule->decode_handlers->elts;
+        for (i = 0; i < rule->p_rule->decode_handlers->nelts; i++) {
+            src = dst;
+            rc = handlers[i](r, &dst, &src, (i != 0));
+            if (rc != NGX_OK) {
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                    "ngx http waf decode error");
+                return;
+            }
+        }
+
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            "ngx http waf rule str match key:%V", key);
+            "ngx http waf rule str match key:%V", &dst);
 
-        // src.data = key->data;
-        // src.len  = key->len;
-        // dst = src;
-
-        // handlers = rule->p_rule->decode_handlers->elts;
-        // for (i = 0; i < rule->p_rule->decode_handlers->nelts; i++) {
-        //     src = dst;
-        //     rc = handlers[i](r, &dst, &src, (i != 0));
-        //     if (rc != NGX_OK) {
-        //         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-        //             "ngx http waf decode error");
-        //         return;
-        //     }
-        // }
-
-        if (rule->p_rule->handler(rule->p_rule, key) == NGX_OK) {
+        if (rule->p_rule->handler(rule->p_rule, &dst) == NGX_OK) {
             ngx_http_waf_score_calc(r, ctx, rule, *key);
         }
     }
